@@ -3,13 +3,17 @@ from aiogram.enums import ParseMode
 from aiogram import F, types, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
 from aiogram.enums import ParseMode
-from middlewares import NumChooseMiddleware
 
 import app.keyboard as kb
 
 router = Router()
 
+class Choose(StatesGroup):
+    numone = State()
+    numtwo = State()
 
 
 #команда старт
@@ -17,7 +21,8 @@ router = Router()
 async def cmd_start(message: Message):
     await message.answer(f'Привіт,{message.from_user.first_name}, я бот-рандомайзер!',
                          reply_markup=kb.main)
-    await message.answer(f'\nПоки що я нічого не вмію, але це лише перший етап.'
+    await message.answer(f'\nЯ можу кидати гральні куби стандартних видів,'
+                         f' для цього натисни кнопку "Куби".'
                          '\nСпробуй /help для отримання списку команд.',
                          reply_markup=kb.startmesskb)
 
@@ -95,11 +100,37 @@ async def cube_D20(callback: CallbackQuery):
 
 ##Число з діапазона
 @router.message(F.text == 'Обрати число')
-async def cube_message(message: Message):
-    await message.answer(f'Введи діапазон чисел:')
+async def choosenum(message: Message, state: FSMContext):
+    await state.set_state(Choose.numone)
+    await message.answer(f'Введіть з якого числа починається діапазон для вибору:')
+###Крок перший вибір першого числа
+@router.message(Choose.numone)
+async def choosenumone(message: Message, state: FSMContext, a = None):
+        await state.update_data(numone=message.text)
+        data = await state.get_data()
+        a = data["numone"]
+        try:
+            a1 = int(a)
+            await state.set_state(Choose.numtwo)
+            await message.answer(f'Введіть до якого числа йде діапазон:')
+        except:
+            await message.answer(f'Ви ввели не число!')
 
-
-
+###крок другий вибір кінцевого числа діапазону
+@router.message(Choose.numtwo)
+async def choosenumtwo(message: Message, state: FSMContext, a = None, b = None):
+    await state.update_data(numtwo=message.text)
+    data = await state.get_data()
+    a = data["numone"]
+    b = data["numtwo"]
+    try:
+        b1 = int(b)
+        a1 = int(a)
+        await message.answer(f'Ваш діапазон від {data["numone"]} до {data["numtwo"]}. \n')
+        await message.answer(f'Рандомне число з діапазону: {random.randint(a1,b1)}')
+        await state.clear()
+    except:
+        await message.answer(f'Ви ввели не число!')
 
 
 #ехо
