@@ -29,3 +29,8 @@ sticklist = config.STICKER_LIST
 def rand_stick(sticklist):
     i = random.randint(0, len(sticklist)-1)
     return sticklist[i]
+
+#Функція перетворення строки на масив
+def list_to_mass(objlist):
+    listout = objlist.split(',')
+    return listout

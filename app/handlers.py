@@ -21,6 +21,10 @@ class Choose(StatesGroup):
 class Count(StatesGroup):
     count = State()
 
+#статус для кнопок діапазону
+class Listchooser(StatesGroup):
+    listchooser = State()
+
 #команда старт
 @router.message(CommandStart())
 async def cmd_start(message: Message):
@@ -116,6 +120,23 @@ async def cube_D20(callback: CallbackQuery):
                                      reply_markup=await kb.inline_cubes())
 
 ##Вибір зі списку
+@router.message(F.text == 'Вибрати зі списку')
+async def listobject(message: Message, state: FSMContext):
+    await state.set_state(Listchooser.listchooser)
+    await message.answer(f"Введіть список об'єктів для вибору випадкового:\n"
+                         f"Задайте список у вигляді\n"
+                         f"[Перший об'єкт],[Другий об'єкт],[Третій об'єкт]")
+
+#Виконання функціі і рандомізаія об"єкту
+@router.message(Listchooser.listchooser)
+async def listobjchoose(message: Message, state: FSMContext):
+    await state.update_data(listchooser=message.text)
+    data = await state.get_data()
+    await state.clear()
+    a = data["listchooser"]
+    listholder = func.list_to_mass(a)
+    i = random.randint(0, len(listholder)-1)
+    await message.answer(f"Випадковий об'єкт із заданого списку: {listholder[i]}")
 
 ##Число з діапазона
 @router.message(F.text == 'Обрати число')
