@@ -21,5 +21,10 @@ startmesskb = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(text='Тицни',url='https://youtu.be/j-iheFkstFQ')]
 ])
 
+choosenumkb = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Показати число',  callback_data=f'shownum')],
+    [InlineKeyboardButton(text='Задати кількість чисел',  callback_data=f'countnums')],
+    [InlineKeyboardButton(text='Без повторів', callback_data=f'repeatson')]
+])
 
 

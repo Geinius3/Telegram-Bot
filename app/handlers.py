@@ -15,6 +15,8 @@ class Choose(StatesGroup):
     numone = State()
     numtwo = State()
 
+class Count(StatesGroup):
+    count = State()
 
 #команда старт
 @router.message(CommandStart())
@@ -114,11 +116,13 @@ async def choosenumone(message: Message, state: FSMContext, a = None):
             await state.set_state(Choose.numtwo)
             await message.answer(f'Введіть до якого числа йде діапазон:')
         except:
+            if a == 'хуй':
+                await message.answer(f'Сам ти хуй!')
             await message.answer(f'Ви ввели не число!')
 
 ###крок другий вибір кінцевого числа діапазону
 @router.message(Choose.numtwo)
-async def choosenumtwo(message: Message, state: FSMContext, a = None, b = None):
+async def choosenumtwo(message: Message, state: FSMContext, a = None, b = None, c1 = 1):
     await state.update_data(numtwo=message.text)
     data = await state.get_data()
     a = data["numone"]
@@ -126,10 +130,22 @@ async def choosenumtwo(message: Message, state: FSMContext, a = None, b = None):
     try:
         b1 = int(b)
         a1 = int(a)
-        await message.answer(f'Ваш діапазон від {data["numone"]} до {data["numtwo"]}. \n')
-        await message.answer(f'Рандомне число з діапазону: {random.randint(a1,b1)}')
+        await message.answer(f'Ваш діапазон від {data["numone"]} до {data["numtwo"]}.'
+                             f'Кількість чисел які будуть вибрані: {c1}'
+                             f'Без повторів: ',
+                             reply_markup=kb.choosenumkb)
         await state.clear()
+
+
+        #"Показати числа" під діапазоном
+        @router.callback_query(F.data == 'shownum')
+        async def shownum(callback: CallbackQuery):
+            await callback.answer('')
+            await message.answer(f'\nРандомне число з діапазону: {random.randint(a1, b1)}')
+
     except:
+        if b == 'хуй':
+            await message.answer(f'Сам ти хуй!')
         await message.answer(f'Ви ввели не число!')
 
 
