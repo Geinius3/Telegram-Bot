@@ -1,5 +1,7 @@
 import random
-listin = 'пресс качат,анжуманя,бегит,турник'
+
+import config
+listin = config.LIST_TASKS
 def list_choose(listin):
     listout = listin.split(',')
     i = random.randint(0, len(listout)-1)
@@ -22,3 +24,8 @@ def min_num(a, b):
         return b
     else:
         return a
+
+sticklist = config.STICKER_LIST
+def rand_stick(sticklist):
+    i = random.randint(0, len(sticklist)-1)
+    return sticklist[i]

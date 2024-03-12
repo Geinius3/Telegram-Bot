@@ -4,6 +4,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 main = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text='Куби'),KeyboardButton(text='Обрати число')],
+    [KeyboardButton(text='Вибрати зі списку')],
     [KeyboardButton(text='Повторити дію')]
 ],
                             resize_keyboard=True,

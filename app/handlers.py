@@ -31,13 +31,13 @@ async def cmd_start(message: Message):
                          '\nСпробуй /help для отримання списку команд.',
                          reply_markup=kb.startmesskb)
 
-
+"""
 ###особисте привітання
 @router.message(F.text == 'привет')
 async def special_answer(message: Message):
     if (message.from_user.id == config.SPECIAL_USER_ID):
         await message.reply('Привет Паркет!')
-
+"""
 
 #команда хелп
 @router.message(Command('help'))
@@ -45,6 +45,12 @@ async def get_help(message: Message):
     await message.answer("Список доступних команд: \n"
                          "/start \n/help "
                          "\nНажаль поки що немає інших команд(( ")
+
+#Чергова весела фіча
+@router.message(Command('randomsticker'))
+async def randomsticker(message: Message):
+    await message.answer_sticker(func.rand_stick(config.STICKER_LIST))
+
 
 #пасхалка
 @router.message(F.text=='пасхалка')
@@ -109,12 +115,11 @@ async def cube_D20(callback: CallbackQuery):
                                      f'Бажаєте кинути ще раз:',
                                      reply_markup=await kb.inline_cubes())
 
+##Вибір зі списку
+
 ##Число з діапазона
 @router.message(F.text == 'Обрати число')
 async def choosenum(message: Message, state: FSMContext):
-#    await state.clear()
-#    data = await state.update_data(numone='0', numtwo='1')
-#    print(data["numone"],data["numtwo"])
     await state.set_state(Choose.numone)
     await message.answer(f'Введіть з якого числа починається діапазон для вибору:')
 ###Крок перший вибір першого числа
@@ -136,19 +141,21 @@ async def choosenumtwo(message: Message, state: FSMContext, c1 = 1):
     if message.text.isdigit():
         await state.update_data(numtwo=message.text)
         data = await state.get_data()
-        a = data["numone"]
-        b = data["numtwo"]
+        a = int(data["numone"])
+        b = int(data["numtwo"])
         await message.answer(f'Ваш діапазон від {data["numone"]} до {data["numtwo"]}.'
-                             f'Кількість чисел які будуть вибрані: {c1}'
-                             f'Без повторів: ',
+                             f'Кількість чисел які будуть вибрані: {c1}\n'
+                             f'Без повторів: Xto',
                              ##кнокпки не работают возникает ошибка
                              reply_markup=kb.choosenumkb)
         ##зробити коротше
         a1 = func.min_num(a, b)
         b1 = func.max_num(a, b)
-        a2 = int(a1)
-        b2 = int(b1)
-        await message.answer(f'\nРандомне число з діапазону: {random.randint(a2, b2)}')
+#        a2 = int(a1)
+#        b2 = int(b1)
+        await message.answer(f'\nРандомне число з діапазону: {random.randint(a1, b1)}')
+        await state.clear()
+
 
     else:
         if message.text == 'хуй':
