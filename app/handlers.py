@@ -1,20 +1,23 @@
 import random
+import config
 from aiogram.enums import ParseMode
 from aiogram import F, types, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from aiogram.enums import ParseMode
-
+from config import SPECIAL_USER_ID, SPECWORD
 import app.keyboard as kb
+import app.functions as func
 
 router = Router()
 
+#статуси для діапазону чисел
 class Choose(StatesGroup):
     numone = State()
     numtwo = State()
 
+#статус для кнопок діапазону
 class Count(StatesGroup):
     count = State()
 
@@ -29,10 +32,10 @@ async def cmd_start(message: Message):
                          reply_markup=kb.startmesskb)
 
 
-
+###особисте привітання
 @router.message(F.text == 'привет')
 async def special_answer(message: Message):
-    if (message.from_user.id == 842172831):
+    if (message.from_user.id == config.SPECIAL_USER_ID):
         await message.reply('Привет Паркет!')
 
 
@@ -50,7 +53,13 @@ async def rickroll_message(message: Message):
     await message.answer('<tg-spoiler>Never gonna let you down!</tg-spoiler>')
     await message.answer('<tg-spoiler>Never gonna run around and desert you!</tg-spoiler>')
 
-#Кнопки
+##крінж
+@router.message(F.text == 'задание')
+async def task_message(message: Message):
+    await message.answer(f'{config.SPECWORD} {func.list_choose(func.listin)}')
+
+
+#Кнопки основної клавіатури
 
 ##Кубики
 @router.message(F.text == 'Куби')
@@ -103,50 +112,61 @@ async def cube_D20(callback: CallbackQuery):
 ##Число з діапазона
 @router.message(F.text == 'Обрати число')
 async def choosenum(message: Message, state: FSMContext):
+#    await state.clear()
+#    data = await state.update_data(numone='0', numtwo='1')
+#    print(data["numone"],data["numtwo"])
     await state.set_state(Choose.numone)
     await message.answer(f'Введіть з якого числа починається діапазон для вибору:')
 ###Крок перший вибір першого числа
 @router.message(Choose.numone)
-async def choosenumone(message: Message, state: FSMContext, a = None):
+async def choosenumone(message: Message, state: FSMContext):
+    if message.text.isdigit():
         await state.update_data(numone=message.text)
         data = await state.get_data()
-        a = data["numone"]
-        try:
-            a1 = int(a)
-            await state.set_state(Choose.numtwo)
-            await message.answer(f'Введіть до якого числа йде діапазон:')
-        except:
-            if a == 'хуй':
-                await message.answer(f'Сам ти хуй!')
-            await message.answer(f'Ви ввели не число!')
+        await state.set_state(Choose.numtwo)
+        await message.answer(f'Введіть до якого числа йде діапазон:')
+    else:
+        if message.text == 'хуй':
+            await message.answer(f'Сам ти хуй!')
+        await message.answer(f'Ви ввели не число!')
 
 ###крок другий вибір кінцевого числа діапазону
 @router.message(Choose.numtwo)
-async def choosenumtwo(message: Message, state: FSMContext, a = None, b = None, c1 = 1):
-    await state.update_data(numtwo=message.text)
-    data = await state.get_data()
-    a = data["numone"]
-    b = data["numtwo"]
-    try:
-        b1 = int(b)
-        a1 = int(a)
+async def choosenumtwo(message: Message, state: FSMContext, c1 = 1):
+    if message.text.isdigit():
+        await state.update_data(numtwo=message.text)
+        data = await state.get_data()
+        a = data["numone"]
+        b = data["numtwo"]
         await message.answer(f'Ваш діапазон від {data["numone"]} до {data["numtwo"]}.'
                              f'Кількість чисел які будуть вибрані: {c1}'
                              f'Без повторів: ',
+                             ##кнокпки не работают возникает ошибка
                              reply_markup=kb.choosenumkb)
-        await state.clear()
+        ##зробити коротше
+        a1 = func.min_num(a, b)
+        b1 = func.max_num(a, b)
+        a2 = int(a1)
+        b2 = int(b1)
+        await message.answer(f'\nРандомне число з діапазону: {random.randint(a2, b2)}')
 
-
-        #"Показати числа" під діапазоном
-        @router.callback_query(F.data == 'shownum')
-        async def shownum(callback: CallbackQuery):
-            await callback.answer('')
-            await message.answer(f'\nРандомне число з діапазону: {random.randint(a1, b1)}')
-
-    except:
-        if b == 'хуй':
+    else:
+        if message.text == 'хуй':
             await message.answer(f'Сам ти хуй!')
         await message.answer(f'Ви ввели не число!')
+
+##тут возникает ошибка я потом исправлю
+ #"Показати числа" під діапазоном
+"""@router.callback_query(F.data == 'shownum')
+async def shownum(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('')
+    a1 = int(a)
+    b1 = int(b)
+    print(a1, b1, type(a1),type(b1))
+    a1 = func.min_num(a, b)
+    b1 = func.max_num(a, b)
+    a2 = int(a1)
+    b2 = int(b1)"""
 
 
 #ехо
