@@ -1,6 +1,5 @@
 import random
 import config
-from aiogram.enums import ParseMode
 from aiogram import F, types, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
@@ -11,14 +10,15 @@ import app.functions as func
 
 router = Router()
 
+#статус для кнопок діапазону
+class Count(StatesGroup):
+    count = State()
+
 #статуси для діапазону чисел
 class Choose(StatesGroup):
     numone = State()
     numtwo = State()
 
-#статус для кнопок діапазону
-class Count(StatesGroup):
-    count = State()
 
 #статус для кнопок діапазону
 class Listchooser(StatesGroup):
