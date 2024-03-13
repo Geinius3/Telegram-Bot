@@ -29,3 +29,9 @@ choosenumkb = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 
+#Клавітура команди хелп
+helplist = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Start', callback_data=f'startinfo')],
+    [InlineKeyboardButton(text='Help', callback_data=f'helpinfo')],
+    [InlineKeyboardButton(text='Random Sticker', callback_data=f'randstickinfo')]
+])

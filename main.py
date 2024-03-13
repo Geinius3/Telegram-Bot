@@ -1,7 +1,4 @@
-#Перша версія бота
 import asyncio
-import random
-import middlewares
 from aiogram import Bot, Dispatcher
 
 from config import TOKEN_API

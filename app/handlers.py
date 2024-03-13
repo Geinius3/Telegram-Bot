@@ -6,7 +6,6 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-from config import SPECIAL_USER_ID, SPECWORD
 import app.keyboard as kb
 import app.functions as func
 
@@ -31,24 +30,55 @@ async def cmd_start(message: Message):
     await message.answer(f'Привіт,{message.from_user.first_name}, я бот-рандомайзер!',
                          reply_markup=kb.main)
     await message.answer(f'\nЯ можу кидати гральні куби стандартних видів,'
-                         f' для цього натисни кнопку "Куби".'
+                         f" обирати випадкове число чи об'єкт за вказаними умовами"
                          '\nСпробуй /help для отримання списку команд.',
                          reply_markup=kb.startmesskb)
 
-"""
 ###особисте привітання
 @router.message(F.text == 'привет')
 async def special_answer(message: Message):
     if (message.from_user.id == config.SPECIAL_USER_ID):
         await message.reply('Привет Паркет!')
-"""
+
 
 #команда хелп
 @router.message(Command('help'))
 async def get_help(message: Message):
-    await message.answer("Список доступних команд: \n"
-                         "/start \n/help "
-                         "\nНажаль поки що немає інших команд(( ")
+    await message.answer("Тут ви можете отримати інформацію про необхідну команду "
+                         "чи функцію, для цього натисніть на кнопку під повідомленням. \n"
+                         "\nНажаль поки що немає інших команд(( ",
+                         reply_markup= kb.helplist)
+
+##Кнопка інфо про старт
+@router.callback_query(F.data == 'startinfo')
+async def startinfo(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'/start - команда початку роботи з ботом,'
+                                     f' у відповідь ви отримаєте коротко інформацію про бота'
+                                     f' і важливе посилання)',
+                                     reply_markup= kb.helplist)
+
+##Кнопка інфо про хелп
+@router.callback_query(F.data == 'helpinfo')
+async def helpinfo(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'/help - команда допомоги, з неї ви дізнаєтесь'
+                                     f' опис та особливості роботи команд та функцій боту'
+                                     f'\n(Ви зараз її використовуєте))',
+                                     reply_markup= kb.helplist)
+
+##Кнопка інфо про рандом стікер
+@router.callback_query(F.data == 'randstickinfo')
+async def randstickinfo(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'/randomsticker - команда визову рандомного стікера.'
+                                     f' Все просто, ви натискаєте команду - бот присилає випадковий стікер'
+                                     f'\nЦе весело, тому спробуйте(b ᵔ▽ᵔ)b ',
+                                     reply_markup= kb.helplist)
+
 
 #Чергова весела фіча
 @router.message(Command('randomsticker'))
@@ -172,8 +202,6 @@ async def choosenumtwo(message: Message, state: FSMContext, c1 = 1):
         ##зробити коротше
         a1 = func.min_num(a, b)
         b1 = func.max_num(a, b)
-#        a2 = int(a1)
-#        b2 = int(b1)
         await message.answer(f'\nРандомне число з діапазону: {random.randint(a1, b1)}')
         await state.clear()
 
@@ -195,6 +223,9 @@ async def shownum(callback: CallbackQuery, state: FSMContext):
     b1 = func.max_num(a, b)
     a2 = int(a1)
     b2 = int(b1)"""
+
+##Додати новий куб
+#  (￣ω￣)
 
 
 #ехо
