@@ -7,6 +7,9 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 import app.keyboard as kb
 import app.functions as func
+from sqlite import botdb
+BotDB = botdb("D:/SQLite/usersqlite.db")
+
 
 router = Router()
 
@@ -27,6 +30,10 @@ class Listchooser(StatesGroup):
 #команда старт
 @router.message(CommandStart())
 async def cmd_start(message: Message):
+    """Додання користувача до бд """
+    if(not BotDB.user_exists(user_id=message.from_user.id)):
+        BotDB.add_user(user_id=message.from_user.id)
+    BotDB.update_restate(user_id=message.from_user.id, restate=False)
     await message.answer(f'Привіт,{message.from_user.first_name}, я бот-рандомайзер!',
                          reply_markup=kb.main)
     await message.answer(f'\nЯ можу кидати гральні куби стандартних видів,'
@@ -84,6 +91,8 @@ async def randstickinfo(callback: CallbackQuery):
 @router.message(Command('randomsticker'))
 async def randomsticker(message: Message):
     await message.answer_sticker(func.rand_stick(config.STICKER_LIST))
+
+
 
 
 #пасхалка
@@ -171,6 +180,7 @@ async def listobjchoose(message: Message, state: FSMContext):
 ##Число з діапазона
 @router.message(F.text == 'Обрати число')
 async def choosenum(message: Message, state: FSMContext):
+    BotDB.update_numbercount(user_id=message.from_user.id, numbercount=1)
     await state.set_state(Choose.numone)
     await message.answer(f'Введіть з якого числа починається діапазон для вибору:')
 ###Крок перший вибір першого числа
@@ -179,6 +189,8 @@ async def choosenumone(message: Message, state: FSMContext):
     if message.text.isdigit():
         await state.update_data(numone=message.text)
         data = await state.get_data()
+        numa_fordb = int(data["numone"])
+        BotDB.update_datanuma(datanumber_a=numa_fordb, user_id=message.from_user.id)
         await state.set_state(Choose.numtwo)
         await message.answer(f'Введіть до якого числа йде діапазон:')
     else:
@@ -188,55 +200,114 @@ async def choosenumone(message: Message, state: FSMContext):
 
 ###крок другий вибір кінцевого числа діапазону
 @router.message(Choose.numtwo)
-async def choosenumtwo(message: Message, state: FSMContext, c1 = 1):
+async def choosenumtwo(message: Message, state: FSMContext):
     if message.text.isdigit():
         await state.update_data(numtwo=message.text)
         data = await state.get_data()
-        a = int(data["numone"])
-        b = int(data["numtwo"])
+        numb_fordb = int(data["numtwo"])
+        BotDB.update_datanumb(datanumber_b=numb_fordb, user_id=message.from_user.id)
+        c1 = BotDB.get_numbercount(user_id=message.from_user.id)
+        c1 = int(c1[0])
+        restate = BotDB.get_restate(user_id=message.from_user.id)
+        restate = bool(restate[0])
+        statestr = func.which_state(restate=restate)
         await message.answer(f'Ваш діапазон від {data["numone"]} до {data["numtwo"]}.'
-                             f'Кількість чисел які будуть вибрані: {c1}\n'
-                             f'Без повторів: Xto',
+                             f'\nКількість чисел які будуть вибрані: {c1}\n'
+                             f'Без повторів: {statestr}',
                              ##кнокпки не работают возникает ошибка
                              reply_markup=kb.choosenumkb)
-        ##зробити коротше
-        a1 = func.min_num(a, b)
-        b1 = func.max_num(a, b)
-        await message.answer(f'\nРандомне число з діапазону: {random.randint(a1, b1)}')
+
         await state.clear()
-
-
     else:
         if message.text == 'хуй':
             await message.answer(f'Сам ти хуй!')
         await message.answer(f'Ви ввели не число!')
 
-##тут возникает ошибка я потом исправлю
- #"Показати числа" під діапазоном
-"""@router.callback_query(F.data == 'shownum')
-async def shownum(callback: CallbackQuery, state: FSMContext):
+
+@router.callback_query(F.data == 'shownum')
+async def numbergenerate(callback: CallbackQuery):
     await callback.answer('')
-    a1 = int(a)
-    b1 = int(b)
-    print(a1, b1, type(a1),type(b1))
-    a1 = func.min_num(a, b)
-    b1 = func.max_num(a, b)
-    a2 = int(a1)
-    b2 = int(b1)"""
+    numa_fromdb = BotDB.get_datanuma(user_id=callback.from_user.id)
+    numa_fromdb = int(numa_fromdb[0])
+    numb_fromdb = BotDB.get_datanumb(user_id=callback.from_user.id)
+    numb_fromdb = int(numb_fromdb[0])
+    numcount_fromdb = BotDB.get_numbercount(user_id=callback.from_user.id)
+    c1 = int(numcount_fromdb[0])
+    restate = BotDB.get_restate(user_id=callback.from_user.id)
+    restate = bool(restate[0])
+    print(restate)
+    a1 = func.min_num(numa_fromdb, numb_fromdb)
+    b1 = func.max_num(numa_fromdb, numb_fromdb)
+    if restate == False:
+        result = str(func.numgenerate(a1, b1, c1))
+        await callback.message.answer(f'\nРандомнi числa з діапазону: {result}')
+    elif (restate == True) and (c1 <= (b1-a1+1)):
+        result = str(func.numgenerateon(a1, b1, c1))
+        await callback.message.answer(f'\nРандомнi числa з діапазону: {result}')
+    else:
+        await callback.message.answer('Умова неможлива! Кількість згенерованих чисел не може бути '
+                              'більша за кількість можливих неповторюваних чисел! Вимкніть '
+                              'функцію "Без повторів" або вкажіть меншу кількість чисел'
+                              ' для генерації.')
+
+
+@router.callback_query(F.data == 'countnums')
+async def numbercount(callback: CallbackQuery, state: FSMContext):
+    await callback.answer('')
+    await state.set_state(Count.count)
+    await callback.message.answer(f'Введіть кількість чисел що будуть згенеровані:')
+
+@router.message(Count.count)
+async def setnumcoun(message: Message, state: FSMContext):
+    if message.text.isdigit():
+        await state.update_data(count=message.text)
+        data = await state.get_data()
+        numcount_fordb = int(data["count"])
+        BotDB.update_numbercount(user_id=message.from_user.id, numbercount=numcount_fordb)
+        numcount_fromdb = BotDB.get_numbercount(user_id=message.from_user.id)
+        c1 = int(numcount_fromdb[0])
+        numa_fromdb = BotDB.get_datanuma(user_id=message.from_user.id)
+        numa_fromdb = int(numa_fromdb[0])
+        numb_fromdb = BotDB.get_datanumb(user_id=message.from_user.id)
+        numb_fromdb = int(numb_fromdb[0])
+        restate = BotDB.get_restate(user_id=message.from_user.id)
+        restate = bool(restate[0])
+        statestr = func.which_state(restate=restate)
+        await message.answer(f'Ваш діапазон від {numa_fromdb} '
+                               f'до {numb_fromdb}.'
+                               f'\nКількість чисел які будуть вибрані: {c1}\n'
+                               f'Без повторів: {statestr}',
+                               reply_markup=kb.choosenumkb)
+        await state.clear()
+
+#
+@router.callback_query(F.data == "repeatson")
+async def repeatnums(callback: CallbackQuery):
+    restate = BotDB.get_restate(user_id=callback.from_user.id)
+    restate = bool(restate[0])
+    restate = not restate
+    BotDB.update_restate(user_id=callback.from_user.id, restate=restate)
+
+    numa_fromdb = BotDB.get_datanuma(user_id=callback.from_user.id)
+    numa_fromdb = int(numa_fromdb[0])
+    numb_fromdb = BotDB.get_datanumb(user_id=callback.from_user.id)
+    numb_fromdb = int(numb_fromdb[0])
+    numcount_fromdb = BotDB.get_numbercount(user_id=callback.from_user.id)
+    c1 = int(numcount_fromdb[0])
+    statestr = func.which_state(restate=restate)
+    await callback.message.edit_text(f'Ваш діапазон від {numa_fromdb} '
+                               f'до {numb_fromdb}.'
+                               f'\nКількість чисел які будуть вибрані: {c1}\n'
+                               f'Без повторів: {statestr}',
+                               reply_markup=kb.choosenumkb)
+
+
 
 ##Додати новий куб
 #  (￣ω￣)
 
 
-#ехо
-"""@router.message()
-async def echo_handler(message: types.Message):
-    try:
-        # повернення повідомлень
-        await message.send_copy(chat_id=message.chat.id)
-    except TypeError:
-        # я не знаю навіщо але нехай буде
-        await message.answer("Nice try!")"""
+
 
 #ще одна пасхала аято&итто
 
