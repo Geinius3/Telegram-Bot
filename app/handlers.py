@@ -34,6 +34,8 @@ async def cmd_start(message: Message):
     if(not BotDB.user_exists(user_id=message.from_user.id)):
         BotDB.add_user(user_id=message.from_user.id)
     BotDB.update_restate(user_id=message.from_user.id, restate=False)
+    BotDB.update_actionstate(user_id=message.from_user.id, actionstate=0)
+    BotDB.update_list(user_id=message.from_user.id, list='')
     await message.answer(f'Привіт,{message.from_user.first_name}, я бот-рандомайзер!',
                          reply_markup=kb.main)
     await message.answer(f'\nЯ можу кидати гральні куби стандартних видів,'
@@ -166,13 +168,15 @@ async def listobject(message: Message, state: FSMContext):
                          f"Задайте список у вигляді\n"
                          f"[Перший об'єкт],[Другий об'єкт],[Третій об'єкт]")
 
-#Виконання функціі і рандомізаія об"єкту
+###Виконання функціі і рандомізаія об"єкту
 @router.message(Listchooser.listchooser)
 async def listobjchoose(message: Message, state: FSMContext):
+    BotDB.update_actionstate(message.from_user.id, actionstate=2)
     await state.update_data(listchooser=message.text)
     data = await state.get_data()
     await state.clear()
     a = data["listchooser"]
+    BotDB.update_list(message.from_user.id, list=a)
     listholder = func.list_to_mass(a)
     i = random.randint(0, len(listholder)-1)
     await message.answer(f"Випадковий об'єкт із заданого списку: {listholder[i]}")
@@ -181,6 +185,7 @@ async def listobjchoose(message: Message, state: FSMContext):
 @router.message(F.text == 'Обрати число')
 async def choosenum(message: Message, state: FSMContext):
     BotDB.update_numbercount(user_id=message.from_user.id, numbercount=1)
+    BotDB.update_actionstate(user_id=message.from_user.id, actionstate=1)
     await state.set_state(Choose.numone)
     await message.answer(f'Введіть з якого числа починається діапазон для вибору:')
 ###Крок перший вибір першого числа
@@ -223,7 +228,7 @@ async def choosenumtwo(message: Message, state: FSMContext):
             await message.answer(f'Сам ти хуй!')
         await message.answer(f'Ви ввели не число!')
 
-
+###кнопка показати числа
 @router.callback_query(F.data == 'shownum')
 async def numbergenerate(callback: CallbackQuery):
     await callback.answer('')
@@ -250,13 +255,14 @@ async def numbergenerate(callback: CallbackQuery):
                               'функцію "Без повторів" або вкажіть меншу кількість чисел'
                               ' для генерації.')
 
-
+##Кнопочка задати ількість чисел
 @router.callback_query(F.data == 'countnums')
 async def numbercount(callback: CallbackQuery, state: FSMContext):
     await callback.answer('')
     await state.set_state(Count.count)
     await callback.message.answer(f'Введіть кількість чисел що будуть згенеровані:')
 
+###задати кількість встановлення кількості
 @router.message(Count.count)
 async def setnumcoun(message: Message, state: FSMContext):
     if message.text.isdigit():
@@ -280,7 +286,7 @@ async def setnumcoun(message: Message, state: FSMContext):
                                reply_markup=kb.choosenumkb)
         await state.clear()
 
-#
+###без повторів
 @router.callback_query(F.data == "repeatson")
 async def repeatnums(callback: CallbackQuery):
     restate = BotDB.get_restate(user_id=callback.from_user.id)
@@ -304,10 +310,46 @@ async def repeatnums(callback: CallbackQuery):
 
 
 ##Додати новий куб
-#  (￣ω￣)
+@router.message(F.text == 'Додати куб')
+async def addcube(message: Message):
+    pass
 
-
-
-
-#ще одна пасхала аято&итто
+##Повторити дію
+@router.message(F.text == 'Повторити дію')
+async def repeataction(message: Message):
+    actionstate = BotDB.get_actionstate(message.from_user.id)
+    actionstate = actionstate[0]
+    if actionstate == 1:
+        numa_fromdb = BotDB.get_datanuma(user_id=message.from_user.id)
+        numa_fromdb = int(numa_fromdb[0])
+        numb_fromdb = BotDB.get_datanumb(user_id=message.from_user.id)
+        numb_fromdb = int(numb_fromdb[0])
+        numcount_fromdb = BotDB.get_numbercount(user_id=message.from_user.id)
+        c1 = int(numcount_fromdb[0])
+        restate = BotDB.get_restate(user_id=message.from_user.id)
+        restate = bool(restate[0])
+        a1 = func.min_num(numa_fromdb, numb_fromdb)
+        b1 = func.max_num(numa_fromdb, numb_fromdb)
+        if restate == False:
+            result = str(func.numgenerate(a1, b1, c1))
+            await message.answer(f'Остання дія - вибір з діапазону чисел від {numa_fromdb} '
+                                 f'до {numb_fromdb}, {c1} разів.'
+                                 f'\nРандомнi числa з діапазону: {result}')
+        elif (restate == True) and (c1 <= (b1 - a1 + 1)):
+            result = str(func.numgenerateon(a1, b1, c1))
+            await message.answer(f'Остання дія - вибір з діапазону чисел від {numa_fromdb} '
+                                 f'до {numb_fromdb}, {c1} разів,'
+                                 f' без повторів.\nРандомнi числa з діапазону: {result}')
+        else:
+            await message.answer('Умова неможлива! Кількість згенерованих чисел не може бути '
+                                 'більша за кількість можливих неповторюваних чисел! Вимкніть '
+                                 'функцію "Без повторів" або вкажіть меншу кількість чисел'
+                                 ' для генерації.')
+    elif actionstate == 2:
+        a = BotDB.get_list(message.from_user.id)
+        a = a[0]
+        listholder = func.list_to_mass(a)
+        i = random.randint(0, len(listholder) - 1)
+        await message.answer(f"Остання дія - вибір обєкта із заданого списку"
+                             f"\nВипадковий об'єкт зі списку: {listholder[i]}")
 

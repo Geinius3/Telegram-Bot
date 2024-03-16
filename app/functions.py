@@ -27,6 +27,7 @@ def rand_stick(sticklist):
     i = random.randint(0, len(sticklist)-1)
     return sticklist[i]
 
+#без коментарів
 listin = config.LIST_TASKS
 def list_choose(listin):
     listout = listin.split(',')
@@ -54,6 +55,7 @@ def numgenerate(numa,numb,numc):
                 newres += result[i]
         return newres
 
+#функція генерацції списку чисел
 def numgenerateon (numa,numb,numc):
     numlist = []
     while len(numlist) < numc:
@@ -68,6 +70,7 @@ def numgenerateon (numa,numb,numc):
                 newres += result[i]
         return newres
 
+#функція статусу без повторів
 def which_state (restate):
     On = 'ON'
     Off = 'OFF'
