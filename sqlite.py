@@ -96,6 +96,55 @@ class botdb:
                             (user_id,))
         return result.fetchall()[0]
 
+    #оновлення змінної cube1 з бд
+    def update_cube1(self, user_id, cube1):
+        self.cursor.execute("UPDATE `users` SET `cube1` = ?  WHERE `user_id` = ?",
+                            (cube1, user_id))
+        return self.conn.commit()
+
+    #отримання cube1 для вибору
+    def get_cube1(self, user_id):
+        result = self.cursor.execute("SELECT `cube1` FROM `users` WHERE `user_id` = ?",
+                            (user_id,))
+        return result.fetchall()[0]
+
+    #оновлення змінної cube2 з бд
+    def update_cube2(self, user_id, cube2):
+        self.cursor.execute("UPDATE `users` SET `cube2` = ?  WHERE `user_id` = ?",
+                            (cube2, user_id))
+        return self.conn.commit()
+
+    #отримання cube2 для вибору
+    def get_cube2(self, user_id):
+        result = self.cursor.execute("SELECT `cube2` FROM `users` WHERE `user_id` = ?",
+                            (user_id,))
+        return result.fetchall()[0]
+
+    #оновлення змінної cube3 з бд
+    def update_cube3(self, user_id, cube3):
+        self.cursor.execute("UPDATE `users` SET `cube3` = ?  WHERE `user_id` = ?",
+                            (cube3, user_id))
+        return self.conn.commit()
+
+    #отримання cube3 для вибору
+    def get_cube3(self, user_id):
+        result = self.cursor.execute("SELECT `cube3` FROM `users` WHERE `user_id` = ?",
+                            (user_id,))
+        return result.fetchall()[0]
+
+    #оновлення змінної cubenum з бд
+    def update_cubenum(self, user_id, cubenum):
+        self.cursor.execute("UPDATE `users` SET `cubenum` = ?  WHERE `user_id` = ?",
+                            (cubenum, user_id))
+        return self.conn.commit()
+
+    #отримання cubenum для вибору
+    def get_cubenum(self, user_id):
+        result = self.cursor.execute("SELECT `cubenum` FROM `users` WHERE `user_id` = ?",
+                            (user_id,))
+        return result.fetchall()[0]
+
+
     def close(self):
         #Закінчння поєдання з бд
         self.conn.close()

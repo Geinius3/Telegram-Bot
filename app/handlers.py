@@ -17,6 +17,10 @@ router = Router()
 class Count(StatesGroup):
     count = State()
 
+#статус для кнопок діапазону
+class Setcube(StatesGroup):
+    setcube = State()
+
 #статуси для діапазону чисел
 class Choose(StatesGroup):
     numone = State()
@@ -31,17 +35,21 @@ class Listchooser(StatesGroup):
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     """Додання користувача до бд """
-    if(not BotDB.user_exists(user_id=message.from_user.id)):
+    if (not BotDB.user_exists(user_id=message.from_user.id)):
         BotDB.add_user(user_id=message.from_user.id)
-    BotDB.update_restate(user_id=message.from_user.id, restate=False)
-    BotDB.update_actionstate(user_id=message.from_user.id, actionstate=0)
-    BotDB.update_list(user_id=message.from_user.id, list='')
-    await message.answer(f'Привіт,{message.from_user.first_name}, я бот-рандомайзер!',
-                         reply_markup=kb.main)
-    await message.answer(f'\nЯ можу кидати гральні куби стандартних видів,'
-                         f" обирати випадкове число чи об'єкт за вказаними умовами"
-                         '\nСпробуй /help для отримання списку команд.',
-                         reply_markup=kb.startmesskb)
+    if (message.from_user.id == config.SPECIAL_USER_ID):
+        await message.reply('Ви були заблоковані за числені порушення роботи бота! Не пишіть сюди більше!!!')
+    else:
+
+        BotDB.update_restate(user_id=message.from_user.id, restate=False)
+        BotDB.update_actionstate(user_id=message.from_user.id, actionstate=0)
+        BotDB.update_list(user_id=message.from_user.id, list='')
+        await message.answer(f'Привіт,{message.from_user.first_name}, я бот-рандомайзер!',
+                              reply_markup=kb.main)
+        await message.answer(f'\nЯ можу кидати гральні куби стандартних видів,'
+                             f" обирати випадкове число чи об'єкт за вказаними умовами"
+                             '\nСпробуй /help для отримання списку команд.',
+                             reply_markup=kb.startmesskb)
 
 ###особисте привітання
 @router.message(F.text == 'привет')
@@ -88,6 +96,55 @@ async def randstickinfo(callback: CallbackQuery):
                                      f'\nЦе весело, тому спробуйте(b ᵔ▽ᵔ)b ',
                                      reply_markup= kb.helplist)
 
+##інфо про бросок куба
+@router.callback_query(F.data == 'cubeinfo')
+async def cube(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'Куби - команда броска класичних гральних або заданих кубів.'
+                                     f'На вибір куби з 4,6,8,10,12,20 сторонами та один з трьох заданих кубів'
+                                     f'. Для того щоб задати свій куб нажміть "Додати куб',
+                                     reply_markup=kb.helplist)
+
+##інфо про додавання куба
+@router.callback_query(F.data == 'addcubeinfo')
+async def addcube(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'Додати куби - команда для створення своїх кубів.'
+                                     f'Ви можете додати лише 3 кубика, а кожен наступний буде змінювати створений '
+                                     f'першим, ви можете додати лише такі куби яких ще немає в списку.',
+                                     reply_markup=kb.helplist)
+
+##інфо про вибір числа
+@router.callback_query(F.data == 'choosenuminfo')
+async def choosenum(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'Обрати число - генерує віпадкове число із заданого діапазону.'
+                                     f' Ви можете задати початкове та кінцеве значення діапазону, '
+                                     f'кількість чисел що будуть обрані, та переключити режим "Без повторів" '
+                                     f'у якому усі згенеровані числа будуть унікальними.',
+                                     reply_markup=kb.helplist)
+##інфо про вибір зі списку
+@router.callback_query(F.data == 'chooselistinfo')
+async def chooselist(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'Вибір зі списку - команда для вибору випадкового об`єкту із заданого списку'
+                                     f'. Напишіть список об`єктів через кому.',
+                                     reply_markup=kb.helplist)
+
+##інфо про повторення останніми командами
+@router.callback_query(F.data == 'repeatinfo')
+async def repeat(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text(f'Інформація про команди\n'
+                                     f'Повторити дію - команда для повтору останньої операції.'
+                                     f'Для потору доступні лише вибір зі списку та вибір числа.'
+                                     f'Ви не зможете відредагувати умову, лише отримати результат'
+                                     f' за попередніми умовами.',
+                                     reply_markup=kb.helplist)
 
 #Чергова весела фіча
 @router.message(Command('randomsticker'))
@@ -115,50 +172,153 @@ async def task_message(message: Message):
 ##Кубики
 @router.message(F.text == 'Куби')
 async def cube_message(message: Message):
+    cube1 = BotDB.get_cube1(message.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(message.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(message.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4', '6', '8', '10', '12', '20', cube1, cube2, cube3]
     await message.answer(f'Обери кубик який хочеш кинути:',
-                         reply_markup=await kb.inline_cubes())
+                         reply_markup=await kb.inline_cubes(cubes))
+
 ###Куб 4 сторони
 @router.callback_query(F.data == 'cube_D4')
 async def cube_D4(callback: CallbackQuery):
     await callback.answer('')
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4', '6', '8', '10', '12', '20', cube1, cube2, cube3]
     await callback.message.edit_text(f'Ви кинули куб з 4 сторонами, вам випало: {random.randint(1,4)}\n'
                                      f'Бажаєте кинути ще раз:',
-                                     reply_markup=await kb.inline_cubes())
+                                     reply_markup=await kb.inline_cubes(cubes))
 ###Куб 6 сторін
 @router.callback_query(F.data == 'cube_D6')
 async def cube_D6(callback: CallbackQuery):
     await callback.answer('')
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4', '6', '8', '10', '12', '20', cube1, cube2, cube3]
     await callback.message.edit_text(f'Ви кинули куб з 6 сторонами, вам випало: {random.randint(1,6)}\n'
                                      f'Бажаєте кинути ще раз:',
-                                     reply_markup=await kb.inline_cubes())
+                                     reply_markup=await kb.inline_cubes(cubes))
 ###Куб 8 сторін
 @router.callback_query(F.data == 'cube_D8')
 async def cube_D8(callback: CallbackQuery):
     await callback.answer('')
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4', '6', '8', '10', '12', '20', cube1, cube2, cube3]
     await callback.message.edit_text(f'Ви кинули куб з 8 сторонами, вам випало: {random.randint(1,8)}\n'
                                      f'Бажаєте кинути ще раз:',
-                                     reply_markup=await kb.inline_cubes())
+                                     reply_markup=await kb.inline_cubes(cubes))
 ###Куб 10 сторін
 @router.callback_query(F.data == 'cube_D10')
 async def cube_D10(callback: CallbackQuery):
     await callback.answer('')
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4', '6', '8', '10', '12', '20', cube1, cube2, cube3]
     await callback.message.edit_text(f'Ви кинули куб з 10 сторонами, вам випало: {random.randint(1,10)}\n'
                                      f'Бажаєте кинути ще раз:',
-                                     reply_markup=await kb.inline_cubes())
+                                     reply_markup=await kb.inline_cubes(cubes))
 ###Куб 12 сторін
 @router.callback_query(F.data == 'cube_D12')
 async def cube_D12(callback: CallbackQuery):
     await callback.answer('')
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4', '6', '8', '10', '12', '20', cube1, cube2, cube3]
     await callback.message.edit_text(f'Ви кинули куб з 12 сторонами, вам випало: {random.randint(1,12)}\n'
                                      f'Бажаєте кинути ще раз:',
-                                     reply_markup=await kb.inline_cubes())
+                                     reply_markup=await kb.inline_cubes(cubes))
+
 ###Куб 20 сторін
 @router.callback_query(F.data == 'cube_D20')
 async def cube_D20(callback: CallbackQuery):
     await callback.answer('')
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4','6','8','10','12','20',cube1,cube2,cube3]
     await callback.message.edit_text(f'Ви кинули куб з 20 сторонами, вам випало: {random.randint(1,20)}\n'
                                      f'Бажаєте кинути ще раз:',
-                                     reply_markup=await kb.inline_cubes())
+                                     reply_markup=await kb.inline_cubes(cubes))
+
+
+###Перший заданий куб
+@router.callback_query(F.data == 'cube_N6')
+async def cube_N6(callback: CallbackQuery):
+    await callback.answer('')
+    cube = BotDB.get_cube1(user_id=callback.from_user.id)
+    cube = int(cube[0])
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4','6','8','10','12','20',cube1,cube2,cube3]
+    await callback.message.edit_text(f'Ви кинули куб з {cube1} сторонами, вам випало: {random.randint(1,cube)}\n'
+                                     f'Бажаєте кинути ще раз:',
+                                     reply_markup=await kb.inline_cubes(list=cubes))
+
+###Другий заданий куб
+@router.callback_query(F.data == 'cube_N7')
+async def cube_N7(callback: CallbackQuery):
+    await callback.answer('')
+    cube = BotDB.get_cube2(user_id=callback.from_user.id)
+    cube = int(cube[0])
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4','6','8','10','12','20',cube1,cube2,cube3]
+    await callback.message.edit_text(f'Ви кинули куб з {cube2} сторонами, вам випало: {random.randint(1,cube)}\n'
+                                     f'Бажаєте кинути ще раз:',
+                                     reply_markup=await kb.inline_cubes(list=cubes))
+
+###Третій заданий куб
+@router.callback_query(F.data == 'cube_N8')
+async def cube_N8(callback: CallbackQuery):
+    await callback.answer('')
+    cube = BotDB.get_cube3(user_id=callback.from_user.id)
+    cube = int(cube[0])
+    cube1 = BotDB.get_cube1(callback.from_user.id)
+    cube1 = str(cube1[0])
+    cube2 = BotDB.get_cube2(callback.from_user.id)
+    cube2 = str(cube2[0])
+    cube3 = BotDB.get_cube3(callback.from_user.id)
+    cube3 = str(cube3[0])
+    cubes = ['4','6','8','10','12','20',cube1,cube2,cube3]
+    await callback.message.edit_text(f'Ви кинули куб з {cube3} сторонами, вам випало: {random.randint(1,cube)}\n'
+                                     f'Бажаєте кинути ще раз:',
+                                     reply_markup=await kb.inline_cubes(list=cubes))
 
 ##Вибір зі списку
 @router.message(F.text == 'Вибрати зі списку')
@@ -311,8 +471,52 @@ async def repeatnums(callback: CallbackQuery):
 
 ##Додати новий куб
 @router.message(F.text == 'Додати куб')
-async def addcube(message: Message):
-    pass
+async def addcube(message: Message, state: FSMContext):
+    await message.answer(f'Введіть кількість сторон бажаємого куба')
+    await state.set_state(Setcube.setcube)
+
+###Введення числа сторін
+@router.message(Setcube.setcube)
+async def setcube(message: Message,state: FSMContext):
+    if message.text.isdigit():
+        cube1 = BotDB.get_cube1(message.from_user.id)
+        cube1 = str(cube1[0])
+        cube2 = BotDB.get_cube2(message.from_user.id)
+        cube2 = str(cube2[0])
+        cube3 = BotDB.get_cube3(message.from_user.id)
+        cube3 = str(cube3[0])
+        cubenum = BotDB.get_cubenum(message.from_user.id)
+        cubenum = int(cubenum[0])
+        cubes = ['4','6','8','10','12','20',cube1,cube2,cube3]
+        if str(message.text) == '0':
+            await message.answer('Куб не може мати 0 сторін.')
+        elif str(message.text) in cubes:
+            await message.answer('Введений куб вже є.')
+        else:
+            if cubenum == 1:
+                BotDB.update_cube1(message.from_user.id, cube1=message.text)
+                cube1 = BotDB.get_cube1(message.from_user.id)
+                cube1 = str(cube1[0])
+                cubes[6] = cube1
+                BotDB.update_cubenum(user_id=message.from_user.id, cubenum=2)
+            elif cubenum == 2:
+                BotDB.update_cube2(message.from_user.id, cube2=message.text)
+                cube2 = BotDB.get_cube2(message.from_user.id)
+                cube2 = str(cube2[0])
+                cubes[7] = cube2
+                BotDB.update_cubenum(user_id=message.from_user.id, cubenum=3)
+            elif cubenum == 3:
+                BotDB.update_cube3(message.from_user.id, cube3=message.text)
+                cube3 = BotDB.get_cube3(message.from_user.id)
+                cube3 = str(cube3[0])
+                cubes[8] = cube3
+                BotDB.update_cubenum(user_id=message.from_user.id, cubenum=1)
+
+            await state.clear()
+            await message.answer(f'Кубик додано!\n Оберіть куб який бажаєте кинути:',
+                             reply_markup=await kb.inline_cubes(cubes))
+    else:
+        await message.answer('Ви ввели не число! Напишіть лише кількість сторон кубика одним числом.')
 
 ##Повторити дію
 @router.message(F.text == 'Повторити дію')
@@ -352,4 +556,17 @@ async def repeataction(message: Message):
         i = random.randint(0, len(listholder) - 1)
         await message.answer(f"Остання дія - вибір обєкта із заданого списку"
                              f"\nВипадковий об'єкт зі списку: {listholder[i]}")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
